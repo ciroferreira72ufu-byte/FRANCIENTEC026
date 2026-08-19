@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulator - Edition computer</title>
+<style>
+  :root {
+    --primary-red: #e60000;
+    --dark-red: #870303;
+    --bg-dark: #0f0f11;
+    --panel-bg: #18181c;
+    --text-color: #e0e0e0;
+    --accent-glow: rgba(230, 0, 0, 0.4);
+    --gold-accent: #ffb700;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+
+  body {
+    background-color: var(--bg-dark);
+    color: var(--text-color);
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* --- Panel Lateral --- */
+  #sidebar {
+    width: 350px;
+    background: var(--panel-bg);
+    border-right: 2px solid var(--dark-red);
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    gap: 12px;
+    z-index: 10;
+    box-shadow: 5px 0 20px rgba(0,0,0,0.7);
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+
+  #sidebar::-webkit-scrollbar {
+    width: 6px;
+  }
+  #sidebar::-webkit-scrollbar-track {
+    background: #111;
+  }
+  #sidebar::-webkit-scrollbar-thumb {
+    background: var(--dark-red);
+    border-radius: 4px;
+  }
+  #sidebar::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-red);
+  }
+
+  .brand-title {
+    font-size: 20px;
+    font-weight: 900;
+    color: var(--primary-red);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    text-align: center;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .section-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    color: #777;
+    letter-spacing: 1.5px;
+    margin-top: 5px;
+    font-weight: bold;
+  }
+
+  .nav-btn {
+    background: linear-gradient(135deg, #2b0000 0%, var(--dark-red) 100%);
+    color: white;
+    border: 1px solid var(--primary-red);
+    padding: 12px 16px;
+    font-weight: bold;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .nav-btn.tech-btn {
+    background: linear-gradient(135deg, #181824 0%, #2a2a3a 100%);
+    border-color: #444466;
+  }
+
+  .nav-btn:hover {
+    background: var(--primary-red);
+    border-color: #ff4d4d;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px var(--accent-glow);
+  }
+
+  .nav-btn.tech-btn:hover {
+    background: #3b3b5c;
+    border-color: var(--gold-accent);
+    box-shadow: 0 6px 15px rgba(255, 183, 0, 0.2);
+  }
+
+  .color-picker-container {
+    width: 100%;
+  }
+
+  .color-picker-container label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+  }
+
+  /* --- Área Principal --- */
+  #game-container {
+    flex: 1;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: radial-gradient(circle, #1a1a20 0%, #050507 100%);
+  }
+
+  canvas {
+    display: block;
+    background: #4b4b4b;
+    box-shadow: 0 0 30px rgba(169, 0, 0, 0.8);
+    border-radius: 4px;
+  }
+
+  #audioToggle {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(0,0,0,0.7);
+    color: #fff;
+    border: 1px solid #555;
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+    z-index: 20;
+    transition: all 0.2s ease;
+  }
+
+  #audioToggle:hover {
+    border-color: var(--primary-red);
+    color: var(--primary-red);
+  }
+
+  /* --- Speedometer --- */
+  #hud {
+    position: absolute;
+    bottom: 25px;
+    right: 25px;
+    width: 260px;
+    height: 260px;
+    border-radius: 50%;
+    border: 4px solid #2a1515;
+    box-shadow: 0 0 35px rgba(230,0,0,0.2), inset 0 0 25px rgba(0,0,0,0.9);
+    background: radial-gradient(circle, #160a0a 0%, #050507 90%);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 5;
+    user-select: none;
+  }
+
+  .rpm-ring {
+    position: absolute;
+    width: 210px;
+    height: 210px;
+    border-radius: 50%;
+    border: 6px solid rgba(255, 255, 255, 0.05);
+    border-top: 6px solid var(--primary-red);
+    border-right: 6px solid var(--primary-red);
+    transform: rotate(-45deg);
+    filter: drop-shadow(0 0 6px var(--primary-red));
+  }
+
+  #needle {
+    position: absolute;
+    bottom: 50%;
+    left: calc(50% - 2px);
+    width: 4px;
+    height: 100px;
+    background: linear-gradient(to top, rgba(230, 0, 0, 0.2), var(--primary-red));
+    transform-origin: bottom center;
+    transform: rotate(-120deg);
+    transition: transform 0.05s linear;
+    border-radius: 2px;
+    box-shadow: 0 0 10px var(--primary-red);
+  }
+
+  #needle-center {
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    background: #0d0e12;
+    border: 2px solid var(--primary-red);
+    border-radius: 50%;
+    z-index: 6;
+    box-shadow: 0 0 8px var(--primary-red);
+  }
+
+  .oled-screen {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 4;
+    top: 52%;
+  }
+
+  #gearDisplay {
+    font-size: 24px;
+    font-weight: 900;
+    color: var(--primary-red);
+    text-shadow: 0 0 8px var(--primary-red);
+    margin-bottom: -4px;
+  }
+
+  #speedText {
+    font-size: 36px;
+    font-weight: 900;
+    color: #fff;
+    font-family: 'Courier New', Courier, monospace;
+    letter-spacing: -1px;
+    text-shadow: 0 0 10px rgba(255,255,255,0.4);
+  }
+
+  .unit-text {
+    font-size: 9px;
+    color: #a08888;
+    font-weight: bold;
+    letter-spacing: 2px;
+    margin-top: -4px;
+  }
+
+  .cluster-indicators {
+    position: absolute;
+    bottom: 30px;
+    display: flex;
+    gap: 18px;
+    z-index: 7;
+  }
+
+  .icon-ind {
+    font-size: 13px;
+    opacity: 0.15;
+    transition: opacity 0.2s ease, text-shadow 0.2s ease, color 0.2s ease;
+    color: #fff;
+  }
+
+  .icon-ind.head-on { opacity: 1; color: #00e676; text-shadow: 0 0 8px #00e676; }
+  .icon-ind.rear-on { opacity: 1; color: #ff1744; text-shadow: 0 0 8px #ff1744; }
+  .icon-ind.brake-on { opacity: 1; color: #ff9100; text-shadow: 0 0 8px #ff9100; }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(8px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    z-index: 100;
+  }
+
+  .modal-overlay.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .modal-card {
+    background: var(--panel-bg);
+    border: 1px solid var(--primary-red);
+    width: 90%;
+    max-width: 550px;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(230,0,0,0.3);
+    transform: translateY(20px);
+    transition: transform 0.3s ease;
+  }
+
+  .modal-overlay.active .modal-card {
+    transform: translateY(0);
+  }
+
+  .modal-card h3 {
+    color: var(--primary-red);
+    margin-bottom: 12px;
+    font-size: 22px;
+  }
+
+  .modal-card p {
+    color: #ccc;
+    line-height: 1.6;
+    font-size: 14px;
+    margin-bottom: 20px;
+  }
+
+  .close-btn {
+    background: var(--primary-red);
+    color: white;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    float: right;
+    font-weight: bold;
+  }
+
+  .controls-hint {
+    font-size: 11px;
+    color: #aaa;
+    text-align: left;
+    margin-top: auto;
+    line-height: 1.6;
+    padding-top: 10px;
+    border-top: 1px solid #333;
+  }
+</style>
+</head>
+<body>
+
+  <!-- Panel Lateral -->
+  <div id="sidebar">
+    <div class="brand-title">FRANCIENTEC</div>
+    
+    <div class="section-label">Información General</div>
+    <button class="nav-btn" onclick="openModal('Descripción General', 'Este simulador toma como referencia el rendimiento promedio de vehículos de alta gama, evaluando variables clave como velocidad, capacidad de frenado y maniobrabilidad.')">
+      <span>🏎️</span> Simulador de Rendimiento
+    </button>
+
+    <button class="nav-btn" onclick="openModal('Sobre Nosotros', 'Desarrollamos este proyecto con el propósito de transformar el proceso de aprendizaje de sistemas de la ingeniería automotriz en una experiencia más accesible, dinámica y creativa.')">
+      <span>👥</span> Sobre Nosotros
+    </button>
+
+    <div class="section-label">Personalización</div>
+    <div class="color-picker-container">
+      <label for="carColorPicker" class="nav-btn tech-btn" style="cursor: pointer;">
+        <span>Color del Auto</span>
+        <input type="color" id="carColorPicker" value="#ffffff" style="cursor: pointer; border: none; background: transparent; width: 28px; height: 28px;">
+      </label>
+    </div>
+
+    <div class="section-label">Sistemas de Ingeniería</div>
+    
+    <button class="nav-btn tech-btn" onclick="openModal('Motor V8 Bi-turbo', 'Para lograr máxima estabilidad sin añadir peso extra en aceleración pura, los fabricantes suelen apostar por un V8 bi-turbo fabricado en aluminio o titanio. Al ser bloques ligeros y operar con combustibles especiales, rebasan fácilmente los 1.600 CV de potencia sin comprometer el equilibrio del eje posterior.')">
+      Motor promedio
+    </button>
+
+    <button class="nav-btn tech-btn" onclick="openModal('Llantas y neumáticos', 'Las llantas fabricadas en fibra de carbono y aleación de magnesio representan el estándar técnico al reducir significativamente la masa no suspendida, lo que optimiza la aceleración y la respuesta dinámica de la suspensión. Por su parte, los neumáticos utilizan compuestos de caucho de alta tecnología reforzados internamente con aramida y Kevlar. Esta estructura es indispensable para resistir la fuerza centrífuga y la degradación térmica a más de 400 km/h, tolerando toneladas de carga aerodinámica y transmitiendo más de 1.500 CV al asfalto sin deformación ni pérdida de adherencia.')">
+      Llantas y neumáticos Promedio
+    </button>
+
+    <button class="nav-btn tech-btn" onclick="openModal('Suspensión Doble horquilla', 'Consolidada como el estándar de la industria, la suspensión de doble horquilla ofrece un control geométrico total sobre la rueda con un peso mínimo. A diferencia de otros sistemas, mantiene la superficie de contacto del neumático uniforme contra el asfalto, independientemente de la carga aerodinámica aplicada. Al integrarse con amortiguadores horizontales accionados por varillas de titanio (push-rod o pull-rod), elimina las torres de suspensión tradicionales y reduce el centro de gravedad al mínimo, un factor decisivo para preservar la estabilidad direccional por encima de los 400 kilómetros por hora.')">
+      Suspensión promedio
+    </button>
+
+    <button class="nav-btn tech-btn" onclick="openModal('Dihedral Synchro-Helix', 'Mediante un movimiento rotacional de 90 grados en paralelo a la carrocería, este mecanismo combina ligereza y practicidad. Elimina el riesgo de colisión con techos o autos contiguos, despeja el voluminoso umbral del chasis de fibra de carbono y evita la adición de pesados componentes hidráulicos, logrando el equilibrio perfecto entre accesibilidad y rendimiento.')">
+      Puertas con mejor resultado
+    </button>
+
+    <button class="nav-btn tech-btn" onclick="openModal('¿Qué es y para qué sirve?', 'En un vehículo de alto rendimiento, la aerodinámica estudia y encauza el flujo de aire alrededor y por debajo del chasis. A más de 300 km/h, la resistencia aerodinámica actúa como una barrera sólida que, sin una gestión precisa, compromete la tracción y la estabilidad. Mediante el uso de alerones activos y el efecto suelo, el sistema genera la carga aerodinámica (downforce) necesaria para adherir el vehículo al asfalto en curvas, al tiempo que reduce el arrastre en rectas para superar los 400 km/h de manera segura.')">
+      Aerodinámica
+    </button>
+
+    <div class="section-label">Sobre el Simulador</div>
+    <button class="nav-btn" onclick="openModal('¿Qué implementa?', 'Este simulador ofrece desde una perspectiva técnica y visual una experiencia de conducción, basada en algunos hechos de la realidad de varios vehículos de alto rendimiento en promedio. Implementa una velocidad de 400 km/h, un frenado eficiente que transforma esos 400 km/h a punto de reposo, inspiradas en el Koenigsegg Jesko. Aparte de eso, posee sistemas de luces delanteras y traseras, un freno de mano, indicadores de velocidad y marcha, opciones de customización de color de carrocería, además de un sistema de audio que simula el sonido del motor en tiempo real.')">
+      ¿Qué implementa?
+    </button>
+
+    <div class="controls-hint">
+      🎮 <strong>Controles del vehículo:</strong><br>
+      ▲ Acelerar | ▼ Frenar / Reversa<br>
+      ◄ Izquierda | ► Derecha<br>
+      <strong>l</strong>: Luces Delanteras y Traseras (ON/OFF)<br>
+      <strong>b</strong>: Freno de Mano
+    </div>
+  </div>
+
+  <!-- Contenedor del Juego -->
+  <div id="game-container">
+    <button id="audioToggle" onclick="toggleAudio()">🔊 Sonido: OFF</button>
+    <canvas id="gameCanvas" width="800" height="700"></canvas>
+
+    <!-- HUD -->
+    <div id="hud">
+      <div class="rpm-ring"></div>
+      <div id="needle"></div>
+      <div id="needle-center"></div>
+
+      <div class="oled-screen">
+        <div id="gearDisplay">N</div>
+        <div id="speedText">0</div>
+        <div class="unit-text">KM/H</div>
+      </div>
+
+      <div class="cluster-indicators">
+        <span id="iconHead" class="icon-ind" title="Faros Delanteros">💡</span>
+        <span id="iconBrake" class="icon-ind" title="Freno de Mano">(P)</span>
+        <span id="iconRear" class="icon-ind" title="Luces Traseras">🔴</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal-overlay" id="infoModal">
+    <div class="modal-card">
+      <h3 id="modalTitle">Título</h3>
+      <p id="modalBody">Contenido...</p>
+      <button class="close-btn" onclick="closeModal()">Cerrar</button>
+    </div>
+  </div>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+const needle = document.getElementById("needle");
+const speedText = document.getElementById("speedText");
+const gearDisplay = document.getElementById("gearDisplay");
+
+// Iconos HUD
+const iconHead = document.getElementById("iconHead");
+const iconRear = document.getElementById("iconRear");
+const iconBrake = document.getElementById("iconBrake");
+
+// Estado del Vehículo
+let car = {
+  x: 320,
+  y: 520,
+  width: 160,
+  height: 260,
+  speed: 0,
+  maxSpeed: 400,
+  maxReverseSpeed: -50,
+  acceleration: 0.4,
+  friction: 0.3,
+  handbrakeFriction: 3,
+  tilt: 0,
+  headlights: false,
+  taillights: false,
+  handbrake: false,
+  color: "#ffffff"
+};
+
+let keys = {};
+let roadOffset = 0;
+
+// Escuchar cambios en el selector de color
+const colorPicker = document.getElementById("carColorPicker");
+colorPicker.addEventListener("input", (e) => {
+  car.color = e.target.value;
+});
+
+// Motor de Audio
+let audioCtx = null;
+let oscMain = null;
+let oscSub = null;
+let filterNode = null;
+let gainNode = null;
+let audioEnabled = false;
+
+function initAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    
+    oscMain = audioCtx.createOscillator();
+    oscMain.type = 'sawtooth';
+
+    oscSub = audioCtx.createOscillator();
+    oscSub.type = 'square';
+
+    filterNode = audioCtx.createBiquadFilter();
+    filterNode.type = 'lowpass';
+    filterNode.frequency.setValueAtTime(350, audioCtx.currentTime);
+
+    gainNode = audioCtx.createGain();
+    gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+
+    oscMain.connect(filterNode);
+    oscSub.connect(filterNode);
+    filterNode.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+
+    oscMain.start();
+    oscSub.start();
+  }
+}
+
+function toggleAudio() {
+  initAudio();
+  audioEnabled = !audioEnabled;
+  const btn = document.getElementById("audioToggle");
+  if (audioEnabled) {
+    audioCtx.resume();
+    btn.innerText = "🔊 Sonido: ON";
+    btn.style.borderColor = "#e60000";
+  } else {
+    gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+    btn.innerText = "🔇 Sonido: OFF";
+    btn.style.borderColor = "#555";
+  }
+}
+
+function updateEngineSound() {
+  if (!audioEnabled || !audioCtx) return;
+
+  let absSpeed = Math.abs(car.speed);
+  let rpmFactor = (absSpeed % 65) / 65; 
+  if (absSpeed === 0) rpmFactor = 0.1;
+
+  let baseFreq = 40 + (rpmFactor * 110) + (absSpeed * 0.15);
+  let filterCutoff = 250 + (rpmFactor * 600) + (absSpeed * 0.8);
+  let volume = (keys["ArrowUp"] || keys["ArrowDown"]) ? 0.18 : 0.04;
+
+  oscMain.frequency.setTargetAtTime(baseFreq, audioCtx.currentTime, 0.05);
+  oscSub.frequency.setTargetAtTime(baseFreq * 0.5, audioCtx.currentTime, 0.05);
+  filterNode.frequency.setTargetAtTime(filterCutoff, audioCtx.currentTime, 0.05);
+  gainNode.gain.setTargetAtTime(volume, audioCtx.currentTime, 0.05);
+}
+
+// Teclado
+document.addEventListener("keydown", (e) => {
+  keys[e.key] = true;
+
+  if (e.key.toLowerCase() === "l") {
+    car.headlights = !car.headlights;
+    car.taillights = car.headlights;
+  }
+});
+
+document.addEventListener("keyup", (e) => {
+  keys[e.key] = false;
+});
+
+// Modales
+function openModal(title, text) {
+  document.getElementById("modalTitle").innerText = title;
+  document.getElementById("modalBody").innerText = text;
+  document.getElementById("infoModal").classList.add("active");
+}
+
+function closeModal() {
+  document.getElementById("infoModal").classList.remove("active");
+}
+
+function update() {
+  car.handbrake = !!keys["b"];
+
+  // Aceleración / Reversa
+  if (keys["ArrowUp"]) {
+    car.speed += car.acceleration;
+  } else if (keys["ArrowDown"]) {
+    if (car.speed > 0) {
+      car.speed -= 0.8;
+    } else {
+      car.speed -= car.acceleration * 0.5;
+    }
+  } else {
+    if (car.speed > 0) {
+      car.speed -= car.friction;
+      if (car.speed < 0) car.speed = 0;
+    } else if (car.speed < 0) {
+      car.speed += car.friction;
+      if (car.speed > 0) car.speed = 0;
+    }
+  }
+
+  // Freno de mano
+  if (car.handbrake) {
+    if (car.speed > 0) {
+      car.speed -= car.handbrakeFriction;
+      if (car.speed < 0) car.speed = 0;
+    } else if (car.speed < 0) {
+      car.speed += car.handbrakeFriction;
+      if (car.speed > 0) car.speed = 0;
+    }
+  }
+
+  // Límites
+  if (car.speed > car.maxSpeed) car.speed = car.maxSpeed;
+  if (car.speed < car.maxReverseSpeed) car.speed = car.maxReverseSpeed;
+
+  // Dirección
+  car.tilt = 0;
+  if (keys["ArrowLeft"]) {
+    car.x -= 2;
+    car.tilt = -0.02;
+  }
+  if (keys["ArrowRight"]) {
+    car.x += 2.8;
+    car.tilt = 0.05;
+  }
+
+  if (car.x < 180) car.x = 180;
+  if (car.x > 620 - car.width) car.x = 620 - car.width;
+
+  roadOffset += car.speed * 0.25;
+
+  // HUD
+  const absSpeed = Math.abs(car.speed);
+  const angle = (absSpeed / car.maxSpeed) * 240 - 120;
+  needle.style.transform = `rotate(${angle}deg)`;
+  speedText.innerText = Math.round(absSpeed);
+
+  iconHead.className = car.headlights ? "icon-ind head-on" : "icon-ind";
+  iconRear.className = car.taillights ? "icon-ind rear-on" : "icon-ind";
+  iconBrake.className = car.handbrake ? "icon-ind brake-on" : "icon-ind";
+
+  // Marchas
+  let gear = "N";
+  if (car.speed < -1) gear = "R";
+  else if (car.speed > 0 && car.speed <= 60) gear = "1";
+  else if (car.speed > 60 && car.speed <= 120) gear = "2";
+  else if (car.speed > 120 && car.speed <= 190) gear = "3";
+  else if (car.speed > 190 && car.speed <= 260) gear = "4";
+  else if (car.speed > 260 && car.speed <= 330) gear = "5";
+  else if (car.speed > 330 && car.speed <= 400) gear = "6";
+  else if (car.speed > 400) gear = "7";
+  
+  gearDisplay.innerText = gear;
+
+  updateEngineSound();
+}
+
+function drawSignPost(ctx, x, y, title, subtitle, isLeft) {
+  ctx.save();
+  ctx.fillStyle = "#555";
+  ctx.fillRect(isLeft ? x + 70 : x - 10, y, 8, 45);
+
+  ctx.fillStyle = "#111";
+  ctx.strokeStyle = "#e60000";
+  ctx.lineWidth = 2;
+  ctx.fillRect(x, y - 35, 75, 35);
+  ctx.strokeRect(x, y - 35, 75, 35);
+
+  ctx.fillStyle = "#fff";
+  ctx.font = "bold 9px Arial";
+  ctx.textAlign = "center";
+  ctx.fillText(title, x + 37, y - 20);
+
+  ctx.fillStyle = "#ffb700";
+  ctx.font = "bold 8px Arial";
+  ctx.fillText(subtitle, x + 37, y - 8);
+
+  ctx.restore();
+}
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  ctx.save();
+
+  if (Math.abs(car.speed) > 220) {
+    const shake = (Math.abs(car.speed) / car.maxSpeed) * 2.5;
+    ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
+  }
+
+  // --- 1. FONDO DE CÉSPED ---
+  let grassGrad = ctx.createLinearGradient(0, 0, canvas.width, 0);
+  grassGrad.addColorStop(0, "#081008");
+  grassGrad.addColorStop(0.2, "#102210");
+  grassGrad.addColorStop(0.8, "#102210");
+  grassGrad.addColorStop(1, "#081008");
+  ctx.fillStyle = grassGrad;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // --- 2. PISTA DE ASFALTO OSCURO ---
+  let roadGrad = ctx.createLinearGradient(150, 0, 650, 0);
+  roadGrad.addColorStop(0, "#2b2b2b");
+  roadGrad.addColorStop(0.5, "#1f1f1f");
+  roadGrad.addColorStop(1, "#2b2b2b");
+  ctx.fillStyle = roadGrad;
+  ctx.fillRect(150, 0, 500, canvas.height);
+
+  // Líneas de huella
+  ctx.fillStyle = "rgba(0, 0, 0, 0.25)";
+  ctx.fillRect(230, 0, 70, canvas.height);
+  ctx.fillRect(500, 0, 70, canvas.height);
+
+  // --- 3. BORDES / PIANOS 3D ---
+  let curbStep = 50;
+  let curbOffset = roadOffset % (curbStep * 2);
+  if (curbOffset < 0) curbOffset += curbStep * 2;
+
+  for (let y = -curbStep * 2; y < canvas.height + curbStep * 2; y += curbStep) {
+    let drawY = y + curbOffset;
+    let isRed = (Math.floor((drawY - curbOffset) / curbStep) % 2 === 0);
+    
+    ctx.fillStyle = isRed ? "#cc0000" : "#dddddd";
+    ctx.fillRect(140, drawY, 10, curbStep);
+    ctx.fillRect(650, drawY, 10, curbStep);
+  }
+
+  // --- 4. LÍNEAS CENTRALES Y LATERALES ---
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(153, 0); ctx.lineTo(153, canvas.height);
+  ctx.moveTo(647, 0); ctx.lineTo(647, canvas.height);
+  ctx.stroke();
+
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.85)";
+  ctx.lineWidth = 5;
+  ctx.setLineDash([35, 35]);
+  ctx.lineDashOffset = -roadOffset;
+  ctx.beginPath();
+  ctx.moveTo(canvas.width / 2, -100);
+  ctx.lineTo(canvas.width / 2, canvas.height + 100);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // --- 5. CARTELES DE SEÑALIZACIÓN ---
+  let signSpacing = 450;
+  let signOffset = roadOffset % signSpacing;
+  if (signOffset < 0) signOffset += signSpacing;
+
+  const signsData = [
+    { leftTitle: "TOP SPEED", leftSub: "60 KM/H", rightTitle: "STOP", rightSub: "NOW" },
+    { leftTitle: "MAX SPEED", leftSub: "80 KM/H", rightTitle: "STOP", rightSub: "NOW" },
+    { leftTitle: "WARNING", leftSub: "HIGH SPEED", rightTitle: "VIGILED", rightSub: "RECORD CAR" }
+  ];
+
+  let signIndex = 0;
+  for (let y = -signSpacing; y < canvas.height + signSpacing; y += signSpacing) {
+    let drawY = y + signOffset;
+    let data = signsData[signIndex % signsData.length];
+
+    drawSignPost(ctx, 40, drawY, data.leftTitle, data.leftSub, true);
+    drawSignPost(ctx, 660, drawY, data.rightTitle, data.rightSub, false);
+
+    signIndex++;
+  }
+
+  car.y = canvas.height - car.height - 40;
+
+  // --- 6. AUTO ---
+  ctx.save();
+  ctx.translate(car.x + car.width / 2, car.y + car.height / 2);
+  ctx.rotate(car.tilt);
+
+  // Carrocería Base (Color dinámico)
+  ctx.fillStyle = car.color;
+  ctx.fillRect(-car.width / 2, -car.height / 2, car.width, car.height);
+
+  // Carrocería Delantera
+  ctx.fillRect(-car.width + 82, -car.height + 126, 156, 20);
+  ctx.fillRect(-car.width + 88, -car.height + 124, 144, 20);
+  ctx.fillRect(-car.width + 92, -car.height + 122, 132, 20);
+  ctx.fillRect(-car.width + 98, -car.height + 120, 120, 20);
+  ctx.fillRect(-car.width + 104, -car.height + 118, 108, 20);
+  ctx.fillRect(-car.width + 110, -car.height + 116, 96, 20);
+
+  // Carrocería Trasera
+  ctx.fillRect(-car.width + 86, -car.height + 374, 148, 20);
+  ctx.fillRect(-car.width + 90, -car.height + 376, 140, 20);
+
+  // Parabrisas delantero
+  ctx.fillStyle = "#0f111c";
+  ctx.fillRect(-car.width + 94, -car.height + 160, 132, 40);
+  ctx.fillRect(-car.width + 96, -car.height + 158, 128, 40);
+  ctx.fillRect(-car.width + 98, -car.height + 156, 124, 40);
+  ctx.fillRect(-car.width + 104, -car.height + 154, 110, 40);
+
+  // Techo (Color dinámico)
+  ctx.fillStyle = car.color;
+  ctx.fillRect(-car.width + 94, -car.height + 180, 132, 198);
+  ctx.fillRect(-car.width + 98, -car.height + 176, 124, 198);
+  ctx.fillRect(-car.width + 102, -car.height + 174, 116, 198);
+
+  // Spoiler
+  ctx.fillStyle = "#333";
+  ctx.fillRect(-car.width + 70, -car.height + 366, 180, 18);
+  ctx.fillRect(-car.width + 70, -car.height + 364, 60, 18);
+  ctx.fillRect(-car.width + 70, -car.height + 362, 40, 18);
+  ctx.fillRect(-car.width + 190, -car.height + 364, 60, 18);
+  ctx.fillRect(-car.width + 210, -car.height + 362, 40, 18);
+  ctx.fillRect(-car.width + 82, -car.height + 370, 156, 18);
+  ctx.fillRect(-car.width + 100, -car.height + 372, 120, 18);
+
+  // Spoiler 2
+  ctx.fillRect(-car.width + 110, -car.height + 300, 20, 80);
+  ctx.fillRect(-car.width + 112, -car.height + 298, 20, 60);
+  ctx.fillRect(-car.width + 113, -car.height + 296, 20, 40);
+  ctx.fillRect(-car.width + 190, -car.height + 300, 20, 80);
+  ctx.fillRect(-car.width + 188, -car.height + 298, 20, 60);
+  ctx.fillRect(-car.width + 187, -car.height + 296, 20, 40);
+
+  // Spoiler 3
+  ctx.fillStyle = "#696969";
+  ctx.fillRect(-car.width + 68, -car.height + 360, 2, 28);
+  ctx.fillRect(-car.width + 250, -car.height + 360, 2, 28);
+
+  // Ventanas laterales
+  ctx.fillStyle = "#0f111c";
+  ctx.fillRect(-car.width + 94, -car.height + 190, 4, 86);
+  ctx.fillRect(-car.width + 96, -car.height + 194, 4, 80);
+  ctx.fillRect(-car.width + 220, -car.height + 190, 4, 86);
+  ctx.fillRect(-car.width + 218, -car.height + 194, 4, 80);
+
+  // Faros Delanteros
+  let isHeadlightOn = car.headlights;
+
+  ctx.fillStyle = isHeadlightOn ? "#fcec03" : "#333333";
+  ctx.shadowColor = isHeadlightOn ? "#fcec03" : "transparent";
+  ctx.shadowBlur = isHeadlightOn ? 15 : 0;
+
+  // Faro Derecho
+  ctx.fillRect(-58, -142, 9, 6);
+  ctx.fillRect(-74, -140, 16, 6);
+  ctx.fillRect(-78, -134, 6, 18);
+  ctx.fillRect(-78, -134, 10, 6);
+  ctx.fillRect(-80, -132, 4, 26);
+
+  // Faro Izquierdo
+  ctx.fillRect(45, -142, 9, 6);
+  ctx.fillRect(54, -140, 16, 6);
+  ctx.fillRect(72, -134, 6, 18);
+  ctx.fillRect(68, -136, 10, 6);
+  ctx.fillRect(76, -132, 4, 26);
+
+  // Resetear sombras 
+  ctx.shadowBlur = 0;
+
+  // HAZ DE LUZ EN LA CARRETERA
+  if (isHeadlightOn) {
+    let grad = ctx.createLinearGradient(0, -car.height / 2, 0, -car.height / 2 - 350);
+    grad.addColorStop(0, 'rgba(255, 255, 220, 0.7)');
+    grad.addColorStop(1, 'rgba(255, 255, 200, 0.0)');
+
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(-car.width / 2 + 10, -car.height / 2);
+    ctx.lineTo(-car.width / 2 - 60, -car.height / 2 - 350);
+    ctx.lineTo(car.width / 2 + 60, -car.height / 2 - 350);
+    ctx.lineTo(car.width / 2 - 10, -car.height / 2);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // Luces Traseras
+  let isBraking = keys["ArrowDown"] && car.speed > 0;
+  let isTaillightOn = car.taillights || isBraking || car.handbrake;
+
+  ctx.fillStyle = isTaillightOn ? "#ff0000" : "#440000";
+  ctx.shadowColor = isTaillightOn ? "#ff0000" : "transparent";
+  ctx.shadowBlur = isTaillightOn ? 18 : 0;
+  ctx.fillRect(-car.width / 2 + 10, car.height / 2 - -2, 30, 6);
+  ctx.fillRect(car.width / 2 - 40, car.height / 2 - -2, 30, 6);
+
+  // Reversa
+  if (car.speed < 0) {
+    ctx.fillStyle = "#fc8700";
+    ctx.shadowColor = "#fc8700";
+    ctx.shadowBlur = 10;
+    ctx.fillRect(+64, car.height / 2 - -2, 6, 4);
+    ctx.fillRect(-70, car.height / 2 - -2, 6, 4);
+  }
+
+  ctx.restore();
+
+  // Líneas de viento
+  if (Math.abs(car.speed) > 150) {
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 5; i++) {
+      let lineX = Math.random() * canvas.width;
+      let lineY = Math.random() * canvas.height;
+      ctx.beginPath();
+      ctx.moveTo(lineX, lineY);
+      ctx.lineTo(lineX, lineY + 40);
+      ctx.stroke();
+    }
+  }
+
+  ctx.restore();
+}
+
+function gameLoop() {
+  update();
+  draw();
+  requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+</script>
+</body>
+</html>
